@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loading Menu…</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Google Analytics (or replace with Plausible if you wish) -->
+  <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script> -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="container">
+    <div id="ad-container">
+      <!-- Replace below with your real ad snippet -->
+      <div id="ad-banner">
+        <!-- Example: AdsKeeper/AdSense code goes here -->
+        <p style="background: #efefef; border-radius: 6px; padding: 1rem; margin: 0 0 1rem 0; text-align:center;">
+          [Your Ad Banner Here]
+        </p>
+      </div>
+    </div>
+    <div id="skip-section">
+      <span id="countdown">5</span> seconds…
+      <br>
+      <button id="skip-btn" disabled>Skip Ad</button>
+    </div>
+    <div id="fallback" style="display:none;color:red; margin-top:1rem;"></div>
+  </div>
+  <script src="js/redirect.js"></script>
+</body>
+</html>
