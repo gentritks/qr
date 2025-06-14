@@ -3,6 +3,7 @@
   const params = new URLSearchParams(window.location.search);
   const loc = params.get('loc');
   const fallbackEl = document.getElementById('fallback');
+  const containerEl = document.getElementById('container');
 
   if (!loc) {
     fallbackEl.textContent = 'No location specified. Please scan the correct QR code.';
@@ -35,11 +36,7 @@
   let seconds = 5;
   const countdownEl = document.getElementById('countdown');
   const skipBtn = document.getElementById('skip-btn');
-  skipBtn.onclick = () => {
-    if (window.gtag) gtag('event', 'ad_skipped', { loc });
-    window.location.href = pdfUrl;
-  };
-
+  skipBtn.onclick = showMenu;
   const timer = setInterval(() => {
     seconds--;
     countdownEl.textContent = seconds;
@@ -50,7 +47,25 @@
     }
   }, 1000);
 
-  setTimeout(() => {
-    window.location.href = pdfUrl;
-  }, 5000);
+  setTimeout(showMenu, 5000);
+
+  function showMenu() {
+    if (window.gtag) gtag('event', 'ad_skipped', { loc });
+    // Replace the entire container content with the iframe
+    containerEl.innerHTML = `
+      <iframe
+        src="${pdfUrl}"
+        width="100%"
+        height="600"
+        allow="autoplay"
+        style="border: none; border-radius: 12px; box-shadow: 0 4px 24px 0 rgba(0,0,0,0.06); margin-top: 1rem;"
+        title="Menu PDF"
+      ></iframe>
+      <div style="margin-top:1rem;">
+        <a href="${pdfUrl}" target="_blank" rel="noopener" style="font-size:0.95rem;color:#0562e8;">
+          Open menu in a new tab
+        </a>
+      </div>
+    `;
+  }
 })();
