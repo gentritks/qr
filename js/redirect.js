@@ -51,14 +51,13 @@
 
   function showMenu() {
     if (window.gtag) gtag('event', 'ad_skipped', { loc });
-    // Replace the entire container content with the iframe
+    // Replace the container content with the embedded PDF
     containerEl.innerHTML = `
       <iframe
         src="${pdfUrl}"
         width="100%"
         height="600"
         allow="autoplay"
-        style="border: none; border-radius: 12px; box-shadow: 0 4px 24px 0 rgba(0,0,0,0.06); margin-top: 1rem;"
         title="Menu PDF"
       ></iframe>
       <div style="margin-top:1rem;">
