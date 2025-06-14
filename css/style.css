@@ -32,3 +32,8 @@ body {
   color: #c00;
   font-weight: 500;
 }
+iframe {
+  max-width: 100%;
+  min-height: 400px;
+}
+
