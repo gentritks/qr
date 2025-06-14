@@ -1,18 +1,15 @@
 (async function main() {
-  // Parse ?loc parameter
   const params = new URLSearchParams(window.location.search);
   const loc = params.get('loc');
   const fallbackEl = document.getElementById('fallback');
   const containerEl = document.getElementById('container');
+  const pdfjsContainer = document.getElementById('pdfjs-container');
 
   if (!loc) {
     fallbackEl.textContent = 'No location specified. Please scan the correct QR code.';
     fallbackEl.style.display = 'block';
     return;
   }
-
-  // Analytics: fire pageview event
-  if (window.gtag) gtag('event', 'ad_page_view', { loc });
 
   // Fetch menu mapping JSON
   let menuMap;
@@ -50,21 +47,25 @@
   setTimeout(showMenu, 5000);
 
   function showMenu() {
-    if (window.gtag) gtag('event', 'ad_skipped', { loc });
-    // Replace the container content with the embedded PDF
-    containerEl.innerHTML = `
+    // Hide ad, timer, fallback
+    document.getElementById('ad-container').style.display = 'none';
+    document.getElementById('skip-section').style.display = 'none';
+    fallbackEl.style.display = 'none';
+    // Show PDF.js viewer in iframe, toolbar hidden
+    // We'll use PDF.js's viewer.html with toolbar disabled via hash parameters
+    const pdfjsViewerUrl = [
+      'pdfjs/web/viewer.html',
+      '?file=',
+      encodeURIComponent(pdfUrl),
+      '#toolbar=0&navpanes=0&view=FitH'
+    ].join('');
+    pdfjsContainer.style.display = 'block';
+    pdfjsContainer.innerHTML = `
       <iframe
-        src="${pdfUrl}"
-        width="100%"
-        height="600"
-        allow="autoplay"
+        src="${pdfjsViewerUrl}"
+        allowfullscreen
         title="Menu PDF"
       ></iframe>
-      <div style="margin-top:1rem;">
-        <a href="${pdfUrl}" target="_blank" rel="noopener" style="font-size:0.95rem;color:#0562e8;">
-          Open menu in a new tab
-        </a>
-      </div>
     `;
   }
 })();
