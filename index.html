@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>PDF Menu Minimal Viewer</title>
   <base href="/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { margin: 0; background: #222; }
     #pdf-container {
@@ -32,6 +33,7 @@
       justify-content: center;
       z-index: 10;
       flex-direction: column;
+      padding: 5vw 2vw;
     }
     #ad-box {
       background: #fff;
@@ -39,8 +41,16 @@
       border-radius: 18px;
       box-shadow: 0 6px 36px rgba(0,0,0,0.2);
       text-align: center;
-      max-width: 340px;
-      min-width: 220px;
+      width: 100%;
+      max-width: 350px;
+      min-width: 0;
+    }
+    #welcome-msg {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      color: #222;
+      word-break: break-word;
     }
     #skip-btn {
       margin-top: 1.2rem;
@@ -60,12 +70,22 @@
       color: #333;
       margin-top: 0.7rem;
     }
+    @media (max-width: 480px) {
+      #ad-box {
+        padding: 1.2rem 0.5rem 1rem;
+        max-width: 98vw;
+        font-size: 1rem;
+      }
+      #welcome-msg { font-size: 1.08rem; }
+      #skip-btn { width: 90%; font-size: 1rem; }
+      #ad-banner { font-size: 0.98rem; }
+    }
   </style>
 </head>
-
 <body>
   <div id="ad-modal">
     <div id="ad-box">
+      <div id="welcome-msg">Welcome</div>
       <div id="ad-banner"
            style="background:#eee;padding:1rem;border-radius:7px;margin-bottom:1.2rem;">
         [Your Ad Banner Here]
@@ -76,17 +96,30 @@
       <button id="skip-btn" disabled>Skip Ad</button>
     </div>
   </div>
-
   <div id="pdf-container"></div>
-
-  <!-- single module script to import the .mjs files and run your logic -->
   <script type="module">
     import * as pdfjsLib from '/build/pdf.mjs';
-    // point PDF.js at the worker .mjs file
     pdfjsLib.GlobalWorkerOptions.workerSrc = '/build/pdf.worker.mjs';
 
+    // --- Popup logic ---
     document.addEventListener('DOMContentLoaded', () => {
-      // ——— Ad‐modal timer ———
+      // Get menu key from query/path
+      let params = new URLSearchParams(window.location.search);
+      let loc = params.get('loc');
+      if (!loc) {
+        const p = window.location.pathname.replace(/^\/|\/$/g, '');
+        loc = p || null;
+      }
+
+      // Format restaurant name (replace dash/underscore with space, capitalize)
+      function formatName(str) {
+        if (!str) return "Welcome!";
+        return "Welcome to " + str
+          .replace(/[-_]+/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+      }
+      document.getElementById('welcome-msg').textContent = formatName(loc);
+
       let seconds = 5, timerId;
       const skipBtn   = document.getElementById('skip-btn');
       const countdown = document.getElementById('countdown');
@@ -99,7 +132,6 @@
           skipBtn.textContent = 'Continue to Menu';
         }
       }
-
       function startTimer() {
         updateCountdown();
         timerId = setInterval(() => {
@@ -107,18 +139,14 @@
           updateCountdown();
         }, 1000);
       }
-
       skipBtn.addEventListener('click', () => {
         clearInterval(timerId);
         showMenu();
       });
-
-      // auto‐skip after 5s
       setTimeout(() => {
         clearInterval(timerId);
         showMenu();
       }, 5000);
-
       startTimer();
     });
 
