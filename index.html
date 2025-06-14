@@ -1,18 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
+  <meta charset="utf-8" />
   <title>PDF Menu Minimal Viewer</title>
+  <base href="/" />
   <style>
     body { margin: 0; background: #222; }
     #pdf-container {
       width: 100vw;
       min-height: 100vh;
-      background: #222;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
+      background: #222;
     }
     canvas {
       margin: 2rem 0;
@@ -25,8 +26,7 @@
     /* Ad modal styling */
     #ad-modal {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      width: 100vw; height: 100vh;
+      inset: 0;
       background: rgba(0,0,0,0.75);
       display: flex;
       align-items: center;
@@ -36,7 +36,7 @@
     }
     #ad-box {
       background: #fff;
-      padding: 2rem 2rem 1.5rem 2rem;
+      padding: 2rem 2rem 1.5rem;
       border-radius: 18px;
       box-shadow: 0 6px 36px rgba(0,0,0,0.2);
       text-align: center;
@@ -62,11 +62,12 @@
       margin-top: 0.7rem;
     }
   </style>
+  <!-- load PDF.js library from absolute path -->
+  <script src="/build/pdf.js"></script>
 </head>
 <body>
   <div id="ad-modal">
     <div id="ad-box">
-      <!-- Place your ad network code or banner here -->
       <div id="ad-banner" style="background:#eee;padding:1rem;border-radius:7px;margin-bottom:1.2rem;">
         [Your Ad Banner Here]
       </div>
@@ -75,26 +76,48 @@
     </div>
   </div>
   <div id="pdf-container"></div>
-  <!-- PDF.js and main script placed LAST, after all HTML elements -->
-  <script src="build/pdf.js"></script>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'build/pdf.worker.js';
 
-    // Timer and ad logic
-    let seconds = 5;
-    const skipBtn = document.getElementById('skip-btn');
-    const countdownEl = document.getElementById('countdown');
-    skipBtn.onclick = showMenu;
-    const timer = setInterval(() => {
-      seconds--;
-      countdownEl.textContent = seconds;
-      if (seconds <= 0) {
-        clearInterval(timer);
-        skipBtn.disabled = false;
-        skipBtn.textContent = 'Continue to Menu';
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Configure the PDF.js worker
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/build/pdf.worker.js';
+
+      // 2. Ad‐modal timer setup
+      let seconds = 5;
+      const skipBtn   = document.getElementById('skip-btn');
+      const countdown = document.getElementById('countdown');
+      let timerId;
+
+      function updateCountdown() {
+        countdown.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(timerId);
+          skipBtn.disabled = false;
+          skipBtn.textContent = 'Continue to Menu';
+        }
       }
-    }, 1000);
-    setTimeout(showMenu, 5000);
+
+      function startTimer() {
+        updateCountdown();
+        timerId = setInterval(() => {
+          seconds--;
+          updateCountdown();
+        }, 1000);
+      }
+
+      skipBtn.addEventListener('click', () => {
+        clearInterval(timerId);
+        showMenu();
+      });
+
+      // auto‐skip after 5 seconds
+      setTimeout(() => {
+        clearInterval(timerId);
+        showMenu();
+      }, 5000);
+
+      startTimer();
+    });
 
     function showMenu() {
       document.getElementById('ad-modal').style.display = 'none';
@@ -102,33 +125,43 @@
     }
 
     function loadMenuPDF() {
-      const params = new URLSearchParams(window.location.search);
-      const loc = params.get('loc');
+      const params    = new URLSearchParams(window.location.search);
+      const loc       = params.get('loc');
       const container = document.getElementById('pdf-container');
+
       if (!loc) {
         container.innerHTML = "<h2 style='color:white'>No menu specified.</h2>";
         return;
       }
-      fetch('menu-map.json').then(res => res.json()).then(menuMap => {
-        const pdfUrl = menuMap[loc];
-        if (!pdfUrl) {
-          container.innerHTML = "<h2 style='color:white'>Menu not found.</h2>";
-          return;
-        }
-        // Render all PDF pages
-        pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+
+      fetch('/menu-map.json')
+        .then(res => res.json())
+        .then(menuMap => {
+          const pdfUrl = menuMap[loc];
+          if (!pdfUrl) {
+            container.innerHTML = "<h2 style='color:white'>Menu not found.</h2>";
+            return;
+          }
+          return pdfjsLib.getDocument(pdfUrl).promise;
+        })
+        .then(pdf => {
+          if (!pdf) return;
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             pdf.getPage(pageNum).then(page => {
-              const canvas = document.createElement('canvas');
-              container.appendChild(canvas);
               const viewport = page.getViewport({ scale: 1.5 });
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+              const canvas   = document.createElement('canvas');
+              const ctx      = canvas.getContext('2d');
+              canvas.width   = viewport.width;
+              canvas.height  = viewport.height;
+              container.appendChild(canvas);
+              page.render({ canvasContext: ctx, viewport });
             });
           }
+        })
+        .catch(err => {
+          console.error('PDF load error:', err);
+          container.innerHTML = "<h2 style='color:white'>Failed to load PDF.</h2>";
         });
-      });
     }
   </script>
 </body>
