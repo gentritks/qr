@@ -23,7 +23,6 @@
       max-width: 96vw;
       height: auto;
     }
-    /* Ad modal styling */
     #ad-modal {
       position: fixed;
       inset: 0;
@@ -62,34 +61,38 @@
       margin-top: 0.7rem;
     }
   </style>
-  <!-- load PDF.js library from absolute path -->
-  <script src="/build/pdf.js"></script>
 </head>
+
 <body>
   <div id="ad-modal">
     <div id="ad-box">
-      <div id="ad-banner" style="background:#eee;padding:1rem;border-radius:7px;margin-bottom:1.2rem;">
+      <div id="ad-banner"
+           style="background:#eee;padding:1rem;border-radius:7px;margin-bottom:1.2rem;">
         [Your Ad Banner Here]
       </div>
-      <div id="ad-timer"><span id="countdown">5</span> seconds…</div>
+      <div id="ad-timer">
+        <span id="countdown">5</span> seconds…
+      </div>
       <button id="skip-btn" disabled>Skip Ad</button>
     </div>
   </div>
+
   <div id="pdf-container"></div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // 1. Configure the PDF.js worker
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/build/pdf.worker.js';
+  <!-- single module script to import the .mjs files and run your logic -->
+  <script type="module">
+    import * as pdfjsLib from '/build/pdf.mjs';
+    // point PDF.js at the worker .mjs file
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/build/pdf.worker.mjs';
 
-      // 2. Ad‐modal timer setup
-      let seconds = 5;
+    document.addEventListener('DOMContentLoaded', () => {
+      // ——— Ad‐modal timer ———
+      let seconds = 5, timerId;
       const skipBtn   = document.getElementById('skip-btn');
       const countdown = document.getElementById('countdown');
-      let timerId;
 
       function updateCountdown() {
-        countdown.textContent = seconds;
+        countdown.textContent = Math.max(0, seconds);
         if (seconds <= 0) {
           clearInterval(timerId);
           skipBtn.disabled = false;
@@ -110,7 +113,7 @@
         showMenu();
       });
 
-      // auto‐skip after 5 seconds
+      // auto‐skip after 5s
       setTimeout(() => {
         clearInterval(timerId);
         showMenu();
@@ -125,42 +128,47 @@
     }
 
     function loadMenuPDF() {
-      const params    = new URLSearchParams(window.location.search);
-      const loc       = params.get('loc');
-      const container = document.getElementById('pdf-container');
+      // first try ?loc=…, then fallback to a “pretty” path like /test-menu
+      const params = new URLSearchParams(window.location.search);
+      let loc = params.get('loc');
+      if (!loc) {
+        const p = window.location.pathname.replace(/^\/|\/$/g, '');
+        loc = p || null;
+      }
 
+      const container = document.getElementById('pdf-container');
       if (!loc) {
         container.innerHTML = "<h2 style='color:white'>No menu specified.</h2>";
         return;
       }
 
       fetch('/menu-map.json')
-        .then(res => res.json())
+        .then(r => r.json())
         .then(menuMap => {
           const pdfUrl = menuMap[loc];
           if (!pdfUrl) {
             container.innerHTML = "<h2 style='color:white'>Menu not found.</h2>";
-            return;
+            throw new Error('no such menu');
           }
           return pdfjsLib.getDocument(pdfUrl).promise;
         })
         .then(pdf => {
-          if (!pdf) return;
-          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-            pdf.getPage(pageNum).then(page => {
-              const viewport = page.getViewport({ scale: 1.5 });
-              const canvas   = document.createElement('canvas');
-              const ctx      = canvas.getContext('2d');
-              canvas.width   = viewport.width;
-              canvas.height  = viewport.height;
+          for (let i = 1; i <= pdf.numPages; i++) {
+            pdf.getPage(i).then(page => {
+              const vp = page.getViewport({ scale: 1.5 });
+              const canvas = document.createElement('canvas');
+              canvas.width  = vp.width;
+              canvas.height = vp.height;
               container.appendChild(canvas);
-              page.render({ canvasContext: ctx, viewport });
+              page.render({ canvasContext: canvas.getContext('2d'), viewport: vp });
             });
           }
         })
         .catch(err => {
-          console.error('PDF load error:', err);
-          container.innerHTML = "<h2 style='color:white'>Failed to load PDF.</h2>";
+          console.error(err);
+          if (!container.innerHTML) {
+            container.innerHTML = "<h2 style='color:white'>Failed to load PDF.</h2>";
+          }
         });
     }
   </script>
