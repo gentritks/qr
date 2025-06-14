@@ -1,11 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>QR Menu Test</title>
+  <meta charset="utf-8"/>
+  <title>PDF Menu Minimal Viewer</title>
+  <style>
+    body { margin: 0; background: #222; }
+    #pdf-container {
+      width: 100vw;
+      min-height: 100vh;
+      background: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    canvas { margin: 2rem 0; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.09); }
+    /* Ad modal styling */
+    #ad-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      flex-direction: column;
+    }
+    #ad-box {
+      background: #fff;
+      padding: 2rem 2rem 1.5rem 2rem;
+      border-radius: 18px;
+      box-shadow: 0 6px 36px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 340px;
+      min-width: 220px;
+    }
+    #skip-btn {
+      margin-top: 1.2rem;
+      padding: 0.7rem 2.1rem;
+      font-size: 1.08rem;
+      border-radius: 9px;
+      border: none;
+      background: #0562e8;
+      color: #fff;
+      cursor: pointer;
+      opacity: 0.88;
+      transition: opacity 0.2s;
+    }
+    #skip-btn:enabled { opacity: 1; }
+    #ad-timer {
+      font-size: 1.12rem;
+      color: #333;
+      margin-top: 0.7rem;
+    }
+  </style>
 </head>
 <body>
-  <div id="pdfjs-container"></div>
-  <script src="js/redirect.js"></script>
+  <div id="ad-modal">
+    <div id="ad-box">
+      <!-- Replace below with your actual ad script/snippet or ad network code -->
+      <div id="ad-banner" style="background:#eee;padding:1rem;border-radius:7px;margin-bottom:1.2rem;">
+        [Your Ad Banner Here]
+      </div>
+      <div id="ad-timer"><span id="countdown">5</span> seconds…</div>
+      <button id="skip-btn" disabled>Skip Ad</button>
+    </div>
+  </div>
+  <div id="pdf-container"></div>
+  <script src="build/pdf.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'build/pdf.worker.js';
+
+    // Ad modal logic
+    let seconds = 5;
+    const skipBtn = document.getElementById('skip-btn');
+    const countdownEl = document.getElementById('countdown');
+    skipBtn.onclick = showMenu;
+
+    const timer = setInterval(() => {
+      seconds--;
+      countdownEl.textContent = seconds;
+      if (seconds <= 0) {
+        clearInterval(timer);
+        skipBtn.disabled = false;
+        skipBtn.textContent = 'Continue to Menu';
+      }
+    }, 1000);
+
+    setTimeout(showMenu, 5000);
+
+    function showMenu() {
+      document.getElementById('ad-modal').style.display = 'none';
+      loadMenuPDF();
+    }
+
+    // PDF loading
+    function loadMenuPDF() {
+      const params = new URLSearchParams(window.location.search);
+      const loc = params.get('loc');
+      const container = document.getElementById('pdf-container');
+      if (!loc) {
+        container.innerHTML = "<h2 style='color:white'>No menu specified.</h2>";
+        return;
+      }
+      fetch('menu-map.json').then(res => res.json()).then(menuMap => {
+        const pdfUrl = menuMap[loc];
+        if (!pdfUrl) {
+          container.innerHTML = "<h2 style='color:white'>Menu not found.</h2>";
+          return;
+        }
+        // Render all pages
+        pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            pdf.getPage(pageNum).then(page => {
+              const canvas = document.createElement('canvas');
+              container.appendChild(canvas);
+              const viewport = page.getViewport({ scale: 1.5 });
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+            });
+          }
+        });
+      });
+    }
+  </script>
 </body>
 </html>
