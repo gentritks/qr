@@ -1,4 +1,5 @@
 {
-  "test-menu": "https://tbaftmir.netlify.app/pdfs/fratellino-restaurant",
-  "test2-menu": "https://tbaftmir.netlify.app/pdfs/ujama-beach-resort.pdf"
+  "fratellino-restaurant": "https://tbaftmir.netlify.app/pdfs/fratellino-restaurant.pdf",
+  "ujama-beach-resort": "https://tbaftmir.netlify.app/pdfs/ujama-beach-resort.pdf",
+  "amarillo-grill": "https://tbaftmir.netlify.app/pdfs/amarillo-grill.pdf"
 }
